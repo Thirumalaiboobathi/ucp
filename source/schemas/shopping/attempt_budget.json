@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ucp.dev/schemas/shopping/attempt_budget.json",
+  "name": "dev.ucp.shopping.attempt_budget",
+  "title": "Attempt Budget Extension",
+  "description": "Lets a Business cap failed Complete Checkout attempts per checkout session and report the counter. When the cap is reached the Business refuses further completions before payment processing and escalates to the Buyer.",
+  "$defs": {
+    "attempt_counter": {
+      "type": "object",
+      "description": "Failed attempts counted so far against the limit for one operation.",
+      "required": ["used", "limit"],
+      "properties": {
+        "used": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Failed completion attempts counted so far in this checkout session."
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Failed completion attempts the Business allows in this session. Once `used` equals `limit`, further Complete Checkout requests are refused with `attempt_limit_reached`."
+        }
+      }
+    },
+    "attempts": {
+      "type": "object",
+      "description": "Per-session attempt accounting. Response-only.",
+      "properties": {
+        "complete": {
+          "$ref": "#/$defs/attempt_counter",
+          "description": "Counter for Complete Checkout."
+        }
+      }
+    },
+    "business_config": {
+      "type": "object",
+      "description": "Business-level attempt budget configuration.",
+      "properties": {
+        "complete": {
+          "type": "object",
+          "description": "Configuration for Complete Checkout.",
+          "properties": {
+            "max_failed": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Default value of `attempts.complete.limit` for new sessions. A Business MAY apply a lower limit to a specific session."
+            }
+          }
+        }
+      }
+    },
+    "dev.ucp.shopping.checkout": {
+      "title": "Checkout with Attempt Budget",
+      "description": "Checkout extended with the failed-attempt counter.",
+      "allOf": [
+        { "$ref": "checkout.json" },
+        {
+          "type": "object",
+          "properties": {
+            "attempts": {
+              "$ref": "#/$defs/attempts",
+              "description": "Failed-attempt accounting for this checkout session.",
+              "ucp_request": "omit"
+            }
+          }
+        }
+      ]
+    },
+    "dev.ucp.shopping.attempt_budget": {
+      "business_schema": {
+        "title": "Attempt Budget Capability (Business)",
+        "description": "Business-level attempt budget capability configuration.",
+        "allOf": [
+          { "$ref": "../capability.json#/$defs/business_schema" },
+          {
+            "type": "object",
+            "properties": {
+              "config": {
+                "$ref": "#/$defs/business_config",
+                "description": "Business attempt budget configuration"
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
